@@ -7,6 +7,7 @@ runtime:
 build:
 
   ci:
+    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-28
     - docker build -t jmreicha/freeipa-server:test -f Dockerfile.fedora-28 .
     - tests/run-master-and-replica.sh local/freeipa-server
 
