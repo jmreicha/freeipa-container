@@ -2,19 +2,19 @@ language: none
 
 runtime:
   # Allow cross platform builds
-  #nodePool: shippable_shared_aarch64
-  nodePool: default_node_pool
+  nodePool: shippable_shared_aarch64
+  #nodePool: default_node_pool
 
 build:
 
   ci:
-    #- sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-28
+    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-28
     - docker build -t local/freeipa-server -f Dockerfile.fedora-28 .
-    - tests/run-master-and-replica.sh local/freeipa-server
+    #- tests/run-master-and-replica.sh local/freeipa-server
 
   post_ci:
-    - docker tag local/freeipa-server jmreicha/freeipa-server:test
-    - docker push jmreicha/freeipa-server:test
+    - docker tag local/freeipa-server jmreicha/freeipa-server:arm64
+    - docker push jmreicha/freeipa-server:arm64
 
 integrations:
   hub:
