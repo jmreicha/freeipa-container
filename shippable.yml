@@ -5,12 +5,15 @@ runtime:
   nodePool: shippable_shared_aarch64
   #nodePool: default_node_pool
 
+env:
+  -  privileged=--privileged
+
 build:
 
   ci:
     - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-28
     - docker build -t local/freeipa-server -f Dockerfile.fedora-28 .
-    #- tests/run-master-and-replica.sh local/freeipa-server
+    - tests/run-master-and-replica.sh local/freeipa-server
 
   post_ci:
     - docker tag local/freeipa-server jmreicha/freeipa-server:arm64
