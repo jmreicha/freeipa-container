@@ -1,0 +1,22 @@
+language: none
+
+# Allow cross platform builds
+runtime:
+  nodePool: shippable_shared_aarch64
+
+build:
+
+  pre_ci:
+    - if test -n "$ca" ; then sudo apt-get install -y libnss3-tools ; fi
+
+  ci:
+    - docker build -t jmreicha/freeipa-server:test -f Dockerfile.fedora-28 .
+    - tests/run-master-and-replica.sh local/freeipa-server
+
+  post_ci:
+    - docker push jmreicha/freeipa-server:test
+
+integrations:
+  hub:
+    - integrationName: dockerhub
+      type: dockerRegistryLogin
