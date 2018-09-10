@@ -6,7 +6,8 @@ runtime:
   #nodePool: default_node_pool
 
 env:
-  -  privileged=--privileged
+  - privileged=--privileged
+  - ca=--external-ca
 
 build:
 
