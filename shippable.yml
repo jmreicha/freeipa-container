@@ -6,13 +6,15 @@ runtime:
   #nodePool: default_node_pool
 
 env:
-  - ca=--external-ca privileged=--privileged
+  #- ca=--external-ca privileged=--privileged
+  - privileged=--privileged
 
 build:
 
   ci:
-    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-28
-    - docker build -t local/freeipa-server -f Dockerfile.fedora-28 .
+    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
+    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
+    - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
     - tests/run-master-and-replica.sh local/freeipa-server
 
   post_ci:
