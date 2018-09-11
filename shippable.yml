@@ -1,19 +1,48 @@
-language: none
+templates: &build-test-push
+  - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
+  - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
+  - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
+  - tests/run-master-and-replica.sh local/freeipa-server
+  - docker tag local/freeipa-server jmreicha/freeipa-server:$arch
+  - docker push jmreicha/freeipa-server:$arch
 
-runtime:
-  # Allow cross platform builds
-  nodePool: shippable_shared_aarch64
-  #nodePool: default_node_pool
+#language: none
+
+#runtime:
+#  # Allow cross platform builds
+#  nodePool: shippable_shared_aarch64
+#  #nodePool: default_node_pool
 
 env:
   #- ca=--external-ca privileged=--privileged
   - privileged=--privileged
-    arch=$(lscpu | grep Arch | awk '{ print $2 }')
+    #arch=$(lscpu | grep Arch | awk '{ print $2 }')
 
-build:
+jobs:
+  - name: Multiarch Docker builds
+    type: runSh
+    steps:
+      - TASK:
+          name: build amd64
+          runtime: default_node_pool
+            options:
+              env:
+                - arch=$(lscpu | grep Arch | awk '{ print $2 }')
+          script:
+            - *build-test-push
+      - TASK:
+          name: build arm64
+          runtime: shippable_shared_aarch64
+            options:
+              env:
+                - arch=$(lscpu | grep Arch | awk '{ print $2 }')
+          script:
+            - *build-test-push
 
-  ci:
-    - echo $arch
+#build:
+#
+#  ci:
+#    - echo $arch
 #    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
 #    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
 #    - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
@@ -22,8 +51,8 @@ build:
 #  post_ci:
 #    - docker tag local/freeipa-server jmreicha/freeipa-server:arm64
 #    - docker push jmreicha/freeipa-server:arm64
-#
-#integrations:
-#  hub:
-#    - integrationName: dockerhub
-#      type: dockerRegistryLogin
+
+integrations:
+  hub:
+    - integrationName: dockerhub
+      type: dockerRegistryLogin
