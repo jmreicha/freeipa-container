@@ -8,20 +8,22 @@ runtime:
 env:
   #- ca=--external-ca privileged=--privileged
   - privileged=--privileged
+  - arch=$(lscpu | grep Arch | awk '{ print $2 }')
 
 build:
 
   ci:
-    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
-    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
-    - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
-    - tests/run-master-and-replica.sh local/freeipa-server
-
-  post_ci:
-    - docker tag local/freeipa-server jmreicha/freeipa-server:arm64
-    - docker push jmreicha/freeipa-server:arm64
-
-integrations:
-  hub:
-    - integrationName: dockerhub
-      type: dockerRegistryLogin
+    - echo $arch
+#    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
+#    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
+#    - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
+#    - tests/run-master-and-replica.sh local/freeipa-server
+#
+#  post_ci:
+#    - docker tag local/freeipa-server jmreicha/freeipa-server:arm64
+#    - docker push jmreicha/freeipa-server:arm64
+#
+#integrations:
+#  hub:
+#    - integrationName: dockerhub
+#      type: dockerRegistryLogin
