@@ -13,10 +13,10 @@ language: none
 #  nodePool: shippable_shared_aarch64
 #  #nodePool: default_node_pool
 
-env:
-  #- ca=--external-ca privileged=--privileged
-  - privileged=--privileged
-    #arch=$(lscpu | grep Arch | awk '{ print $2 }')
+#env:
+#  #- ca=--external-ca privileged=--privileged
+#  - privileged=--privileged
+#    #arch=$(lscpu | grep Arch | awk '{ print $2 }')
 
 jobs:
   - name: Build amd64
@@ -29,6 +29,7 @@ jobs:
           runtime:
             options:
               env:
+                - privileged=--privileged
                 - arch=$(lscpu | grep Arch | awk '{ print $2 }')
           script:
             - *build-test-push
@@ -43,6 +44,7 @@ jobs:
           runtime:
             options:
               env:
+                - privileged=--privileged
                 - arch=$(lscpu | grep Arch | awk '{ print $2 }')
           script:
             - *build-test-push
