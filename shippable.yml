@@ -6,7 +6,7 @@ templates: &build-test-push
   - docker tag local/freeipa-server jmreicha/freeipa-server:$arch
   - docker push jmreicha/freeipa-server:$arch
 
-#language: none
+language: none
 
 #runtime:
 #  # Allow cross platform builds
@@ -21,9 +21,9 @@ env:
 jobs:
   - name: Build amd64
     type: runSh
+    runtime: default_node_pool
     steps:
       - TASK:
-          name: build-test-push
           runtime:
             options:
               env:
@@ -36,7 +36,6 @@ jobs:
     runtime: shippable_shared_aarch64
     steps:
       - TASK:
-          name: build-test-push
           runtime:
             options:
               env:
