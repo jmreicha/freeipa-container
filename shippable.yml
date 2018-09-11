@@ -8,7 +8,7 @@ runtime:
 env:
   #- ca=--external-ca privileged=--privileged
   - privileged=--privileged
-  - arch=$(lscpu | grep Arch | awk '{ print $2 }')
+    arch=$(lscpu | grep Arch | awk '{ print $2 }')
 
 build:
 
