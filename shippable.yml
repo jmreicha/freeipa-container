@@ -19,20 +19,25 @@ env:
     #arch=$(lscpu | grep Arch | awk '{ print $2 }')
 
 jobs:
-  - name: Multiarch Docker builds
+  - name: Build amd64
     type: runSh
     steps:
       - TASK:
-          name: build amd64
-          runtime: default_node_pool
+          name: build-test-push
+          runtime:
             options:
               env:
                 - arch=$(lscpu | grep Arch | awk '{ print $2 }')
           script:
             - *build-test-push
+
+  - name: Build arm64
+    type: runSh
+    runtime: shippable_shared_aarch64
+    steps:
       - TASK:
-          name: build arm64
-          runtime: shippable_shared_aarch64
+          name: build-test-push
+          runtime:
             options:
               env:
                 - arch=$(lscpu | grep Arch | awk '{ print $2 }')
