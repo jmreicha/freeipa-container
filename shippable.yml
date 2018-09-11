@@ -21,7 +21,9 @@ env:
 jobs:
   - name: Build amd64
     type: runSh
-    runtime: default_node_pool
+    runtime:
+      nodePool: default_node_pool
+      container: true
     steps:
       - TASK:
           runtime:
@@ -33,7 +35,9 @@ jobs:
 
   - name: Build arm64
     type: runSh
-    runtime: shippable_shared_aarch64
+    runtime:
+      nodePool: shippable_shared_aarch64
+      container: true
     steps:
       - TASK:
           runtime:
