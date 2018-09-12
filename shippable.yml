@@ -36,13 +36,13 @@ templates: &build-test-push
   - docker tag local/freeipa-server jmreicha/freeipa-server:$arch
   - docker push jmreicha/freeipa-server:$arch
 
-#resources:
-#    - name: freeipa-container-gitRepo
-#      type:   gitRepo
-#      integration: freeipa-container-gitRepo
-#      versionTemplate:
-#          sourceName: jmreicha/freeipa-container
-#          branch: master
+resources:
+    - name: freeipa-container-gitRepo
+      type:   gitRepo
+      integration: freeipa-container-gitRepo
+      versionTemplate:
+          sourceName: jmreicha/freeipa-container
+          branch: master
 
 jobs:
   - name: build_amd64
@@ -51,7 +51,7 @@ jobs:
       nodePool: default_node_pool
       container: true
     steps:
-      #- IN: freeipa-container-gitRepo
+      - IN: freeipa-container-gitRepo
       - TASK:
           runtime:
             options:
@@ -67,7 +67,7 @@ jobs:
       nodePool: shippable_shared_aarch64
       container: true
     steps:
-      #- IN: freeipa-container-getRepo
+      - IN: freeipa-container-getRepo
       - TASK:
           runtime:
             options:
