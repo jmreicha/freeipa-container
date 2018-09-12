@@ -29,6 +29,9 @@
 #			type: dockerRegistryLogin
 
 templates: &build-test-push
+  - pwd
+  - ls -alh
+  - env
   - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
   - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
   - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
@@ -52,6 +55,7 @@ jobs:
       container: true
     steps:
       - IN: freeipa-container-gitRepo
+      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
@@ -68,6 +72,7 @@ jobs:
       container: true
     steps:
       - IN: freeipa-container-gitRepo
+      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
