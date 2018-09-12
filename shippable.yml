@@ -45,7 +45,7 @@ templates: &build-test-push
 #          branch: master
 
 jobs:
-  - name: "Build amd64"
+  - name: build_amd64
     type: runSh
     runtime:
       nodePool: default_node_pool
@@ -65,7 +65,7 @@ jobs:
           script:
             - *build-test-push
 
-  - name: "Build arm64"
+  - name: build_arm64
     type: runSh
     runtime:
       nodePool: shippable_shared_aarch64
