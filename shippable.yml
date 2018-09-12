@@ -52,7 +52,6 @@ jobs:
       container: true
     steps:
       - IN: freeipa-container-gitRepo
-      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
@@ -69,7 +68,6 @@ jobs:
       container: true
     steps:
       - IN: freeipa-container-gitRepo
-      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
