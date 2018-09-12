@@ -30,6 +30,9 @@
 #			type: dockerRegistryLogin
 
 templates: &build-test-push
+  - export HUB_USERNAME=$(shipctl get_integration_field "dockerhub" "username")
+  - export HUB_PASSWORD=$(shipctl get_integration_field "dockerhub" "password")
+  - docker login --username $HUB_USERNAME --password $HUB_PASSWORD
   - cd $(shipctl get_resource_state "freeipa-container-gitRepo")
   - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
   - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
