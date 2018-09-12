@@ -50,10 +50,6 @@ jobs:
     runtime:
       nodePool: default_node_pool
       container: true
-    integrations:
-      hub:
-        - integrationName: dockerhub
-          type: dockerRegistryLogin
     steps:
       - IN: freeipa-container-gitRepo
       - TASK:
@@ -70,10 +66,6 @@ jobs:
     runtime:
       nodePool: shippable_shared_aarch64
       container: true
-    integrations:
-      hub:
-        - integrationName: dockerhub
-          type: dockerRegistryLogin
     steps:
       - IN: freeipa-container-getRepo
       - TASK:
@@ -84,4 +76,9 @@ jobs:
                 - arch: $(lscpu | grep Arch | awk '{ print $2 }')
           script:
             - *build-test-push
+
+integrations:
+	hub:
+		- integrationName: dockerhub
+			type: dockerRegistryLogin
 
