@@ -38,7 +38,7 @@ templates: &build-test-push
 
 resources:
     - name: freeipa-container-gitRepo
-      type:   gitRepo
+      type: gitRepo
       integration: freeipa-container-gitRepo
       versionTemplate:
           sourceName: jmreicha/freeipa-container
@@ -52,6 +52,7 @@ jobs:
       container: true
     steps:
       - IN: freeipa-container-gitRepo
+      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
@@ -68,6 +69,7 @@ jobs:
       container: true
     steps:
       - IN: freeipa-container-gitRepo
+      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
