@@ -30,9 +30,7 @@
 #			type: dockerRegistryLogin
 
 templates: &build-test-push
-  - pwd
-  - ls -alh
-  - ls -alh IN/freeipa-container-gitRepo/gitRepo
+  - cd IN/freeipa-container-gitRepo/gitRepo
   - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
   - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
   - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
