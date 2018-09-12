@@ -1,56 +1,15 @@
-templates: &build-test-push
-  - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
-  - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
-  - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
-  - tests/run-master-and-replica.sh local/freeipa-server
-  - docker tag local/freeipa-server jmreicha/freeipa-server:$arch
-  - docker push jmreicha/freeipa-server:$arch
-
-language: none
-
+#language: none
+#
 #runtime:
 #  # Allow cross platform builds
 #  nodePool: shippable_shared_aarch64
 #  #nodePool: default_node_pool
-
+#
 #env:
 #  #- ca=--external-ca privileged=--privileged
 #  - privileged=--privileged
 #    #arch=$(lscpu | grep Arch | awk '{ print $2 }')
-
-jobs:
-  - name: Build amd64
-    type: runSh
-    runtime:
-      nodePool: default_node_pool
-      container: true
-    steps:
-      - IN: freeipa-container_runCI
-      - TASK:
-          runtime:
-            options:
-              env:
-                - privileged=--privileged
-                - arch=$(lscpu | grep Arch | awk '{ print $2 }')
-          script:
-            - *build-test-push
-
-  - name: Build arm64
-    type: runSh
-    runtime:
-      nodePool: shippable_shared_aarch64
-      container: true
-    steps:
-      - IN: freeipa-container_runCI
-      - TASK:
-          runtime:
-            options:
-              env:
-                - privileged=--privileged
-                - arch=$(lscpu | grep Arch | awk '{ print $2 }')
-          script:
-            - *build-test-push
-
+#
 #build:
 #
 #  ci:
@@ -63,8 +22,66 @@ jobs:
 #  post_ci:
 #    - docker tag local/freeipa-server jmreicha/freeipa-server:arm64
 #    - docker push jmreicha/freeipa-server:arm64
+#
+#integrations:
+#	hub:
+#		- integrationName: dockerhub
+#			type: dockerRegistryLogin
 
-integrations:
-  hub:
-    - integrationName: dockerhub
-      type: dockerRegistryLogin
+templates: &build-test-push
+  - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
+  - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
+  - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
+  - tests/run-master-and-replica.sh local/freeipa-server
+  - docker tag local/freeipa-server jmreicha/freeipa-server:$arch
+  - docker push jmreicha/freeipa-server:$arch
+
+#resources:
+#    - name: freeipa-container-gitRepo
+#      type:   gitRepo
+#      integration: freeipa-container-gitRepo
+#      versionTemplate:
+#          sourceName: jmreicha/freeipa-container
+#          branch: master
+
+jobs:
+  - name: "Build amd64"
+    type: runSh
+    runtime:
+      nodePool: default_node_pool
+      container: true
+    integrations:
+      hub:
+        - integrationName: dockerhub
+          type: dockerRegistryLogin
+    steps:
+      - IN: freeipa-container-gitRepo
+      - TASK:
+          runtime:
+            options:
+              env:
+                - privileged: --privileged
+                - arch: $(lscpu | grep Arch | awk '{ print $2 }')
+          script:
+            - *build-test-push
+
+  - name: "Build arm64"
+    type: runSh
+    runtime:
+      nodePool: shippable_shared_aarch64
+      container: true
+    integrations:
+      hub:
+        - integrationName: dockerhub
+          type: dockerRegistryLogin
+    steps:
+      - IN: freeipa-container-getRepo
+      - TASK:
+          runtime:
+            options:
+              env:
+                - privileged: --privileged
+                - arch: $(lscpu | grep Arch | awk '{ print $2 }')
+          script:
+            - *build-test-push
+
