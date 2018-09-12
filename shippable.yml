@@ -56,7 +56,6 @@ jobs:
       - dockerhub
     steps:
       - IN: freeipa-container-gitRepo
-      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
@@ -77,7 +76,6 @@ jobs:
       - dockerhub
     steps:
       - IN: freeipa-container-gitRepo
-      - IN: freeipa-container_master_rSync
       - TASK:
           runtime:
             options:
