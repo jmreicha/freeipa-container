@@ -13,6 +13,7 @@
 #build:
 #
 #  ci:
+#    - arch: $(lscpu | grep Arch | awk '{ print $2 }')
 #    - echo $arch
 #    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
 #    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
@@ -31,6 +32,8 @@
 templates: &build-test-push
   - pwd
   - ls -alh
+  - ls -alh IN
+  - ls -alh OUT
   - env
   - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
   - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
@@ -61,7 +64,8 @@ jobs:
             options:
               env:
                 - privileged: --privileged
-                - arch: $(lscpu | grep Arch | awk '{ print $2 }')
+                # Hardcode this for now
+                - arch: amd64
           script:
             - *build-test-push
 
@@ -78,7 +82,8 @@ jobs:
             options:
               env:
                 - privileged: --privileged
-                - arch: $(lscpu | grep Arch | awk '{ print $2 }')
+                # Hardcode this for now
+                - arch: arm64
           script:
             - *build-test-push
 
