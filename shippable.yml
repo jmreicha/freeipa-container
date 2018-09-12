@@ -67,7 +67,7 @@ jobs:
       nodePool: shippable_shared_aarch64
       container: true
     steps:
-      - IN: freeipa-container-getRepo
+      - IN: freeipa-container-gitRepo
       - TASK:
           runtime:
             options:
