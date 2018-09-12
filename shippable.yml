@@ -30,7 +30,7 @@
 #			type: dockerRegistryLogin
 
 templates: &build-test-push
-  - cd IN/freeipa-container-gitRepo/gitRepo
+  - cd $(shipctl get_resource_state "freeipa-container-gitRepo")
   - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
   - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
   - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
@@ -52,6 +52,8 @@ jobs:
     runtime:
       nodePool: default_node_pool
       container: true
+    integrations:
+      - dockerhub
     steps:
       - IN: freeipa-container-gitRepo
       - IN: freeipa-container_master_rSync
@@ -71,6 +73,8 @@ jobs:
     runtime:
       nodePool: shippable_shared_aarch64
       container: true
+    integrations:
+      - dockerhub
     steps:
       - IN: freeipa-container-gitRepo
       - IN: freeipa-container_master_rSync
@@ -83,9 +87,3 @@ jobs:
                 - arch: arm64
           script:
             - *build-test-push
-
-integrations:
-	hub:
-		- integrationName: dockerhub
-			type: dockerRegistryLogin
-
