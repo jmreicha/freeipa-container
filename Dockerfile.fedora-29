@@ -1,21 +1,17 @@
-# Clone from the Fedora rawhide image
-FROM registry.fedoraproject.org/fedora:rawhide
+# Clone from the Fedora 29 image
+FROM registry.fedoraproject.org/fedora:29
 
-MAINTAINER FreeIPA Developers <freeipa-devel@lists.fedorahosted.org>
+MAINTAINER Jan Pazdziora
 
 RUN groupadd -g 288 kdcproxy ; useradd -u 288 -g 288 -c 'IPA KDC Proxy User' -d '/var/lib/kdcproxy' -s '/sbin/nologin' kdcproxy
 RUN groupadd -g 289 ipaapi; useradd -u 289 -g 289 -c 'IPA Framework User' -r -d / -s '/sbin/nologin' ipaapi
 
 # Workaround 1615948
 RUN ln -s /bin/false /usr/sbin/systemd-machine-id-setup
-RUN dnf upgrade -y --setopt=install_weak_deps=False \
-	&& dnf install -y --setopt=install_weak_deps=False freeipa-server freeipa-server-dns freeipa-server-trust-ad patch \
+RUN dnf install -y --setopt=install_weak_deps=False freeipa-server freeipa-server-dns freeipa-server-trust-ad patch \
 	&& dnf clean all
 
 # debug: RUN test $( getent passwd | grep -E "^(dirsrv:x:389|ipaapi:x:289|kdcproxy:x:288|pkiuser:x:17):" | wc -l ) -eq 4
-
-# var-lib-nfs-rpc_pipefs.mount would run (and fail) nondeterministically
-RUN systemctl mask rpc-gssd.service
 
 # Container image which runs systemd
 # debug: RUN test -f /etc/machine-id && ! test -s /etc/machine-id
@@ -24,7 +20,7 @@ ENV container oci
 ENTRYPOINT [ "/usr/sbin/init" ]
 STOPSIGNAL RTMIN+3
 # test-addon: VOLUME [ "/var/log/journal" ]
-# test: systemd-container-failed.sh
+# test: systemd-container-failed.sh var-lib-nfs-rpc_pipefs.mount
 
 # Minimize the systemd setup
 RUN find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.target.wants -type l | xargs rm -v
@@ -32,7 +28,7 @@ COPY patches/minimal-fedora-26.patch /root/
 RUN patch --verbose -p0 --fuzz=0 < /root/minimal-fedora-26.patch
 # debug: RUN ! find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.target.wants /etc/tmpfiles.d -type f | grep .
 
-RUN ln -s /usr/lib/systemd/system/dbus-broker.service /usr/lib/systemd/system/dbus.service
+RUN ln -s /usr/lib/systemd/system/dbus-daemon.service /usr/lib/systemd/system/dbus.service
 COPY container-ipa.target /usr/lib/systemd/system/
 RUN systemctl set-default container-ipa.target
 RUN rmdir -v /etc/systemd/system/multi-user.target.wants \
@@ -41,15 +37,15 @@ RUN rmdir -v /etc/systemd/system/multi-user.target.wants \
 RUN systemd-tmpfiles --remove --create
 # debug: RUN ! test -f /var/lib/systemd/random-seed
 # test-addon: VOLUME [ "/var/log/journal" ]
-# test: systemd-container-diff.sh list-dependencies-fedora-30.out docker-diff-minimal-fedora-30.exceptions docker-diff-minimal-fedora-23.out
+# test: systemd-container-diff.sh list-dependencies-fedora-29.out docker-diff-minimal-fedora-23.exceptions docker-diff-minimal-fedora-23.out
 
 # Prepare for basic ipa-server-install in container
 # Address failing nis-domainname.service in the ipa-client-install step
 RUN mv /usr/bin/nisdomainname /usr/bin/nisdomainname.orig
 ADD hostnamectl-wrapper /usr/bin/nisdomainname
 
-COPY patches/ipa-fedora-30.patch /root
-RUN set -o pipefail ; patch --verbose -p0 --fuzz=0 < /root/ipa-fedora-30.patch | tee /dev/stderr | sed -n 's/^patching file //;T;/\.py$/p' | xargs python3 -m compileall
+COPY patches/ipa-fedora-29.patch /root
+RUN set -o pipefail ; patch --verbose -p0 --fuzz=0 < /root/ipa-fedora-29.patch | tee /dev/stderr | sed -n 's/^patching file //;T;/\.py$/p' | xargs python3 -m compileall
 
 # Workaround https://github.com/freeipa/freeipa-container/issues/187
 COPY certmonger-wait-for-ready.conf /usr/lib/systemd/system/certmonger.service.d/wait-for-ready.conf
@@ -77,7 +73,7 @@ VOLUME [ "/tmp", "/run", "/data", "/var/log/journal" ]
 
 COPY init-data-minimal /usr/local/sbin/init
 ENTRYPOINT [ "/usr/local/sbin/init" ]
-# test: systemd-container-ipa-server-install-data.sh docker-diff-minimal-fedora-30.out
+# test: systemd-container-ipa-server-install-data.sh docker-diff-minimal-fedora-23.out
 
 # Configure master/replica upon the first invocation
 COPY init-data /usr/local/sbin/init

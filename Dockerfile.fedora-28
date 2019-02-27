@@ -4,65 +4,97 @@ FROM registry.fedoraproject.org/fedora:28
 MAINTAINER FreeIPA Developers <freeipa-devel@lists.fedorahosted.org>
 
 RUN groupadd -g 288 kdcproxy ; useradd -u 288 -g 288 -c 'IPA KDC Proxy User' -d '/var/lib/kdcproxy' -s '/sbin/nologin' kdcproxy
-RUN groupadd -g 289 ipaapi; useradd -u 289 -g 289 -c 'IPA Framework User' -d / -s '/sbin/nologin' ipaapi
+RUN groupadd -g 289 ipaapi; useradd -u 289 -g 289 -c 'IPA Framework User' -r -d / -s '/sbin/nologin' ipaapi
 
-RUN dnf upgrade -y && dnf install -y freeipa-server freeipa-server-dns freeipa-server-trust-ad initscripts && dnf clean all
+# Workaround 1615948
+RUN ln -s /bin/false /usr/sbin/systemd-machine-id-setup
+RUN dnf upgrade -y --setopt=install_weak_deps=False \
+	&& dnf install -y --setopt=install_weak_deps=False freeipa-server freeipa-server-dns freeipa-server-trust-ad patch \
+	&& dnf clean all
 
-# Workaround 1364139
-RUN sed -i '/installutils.verify_fqdn(config.master_host_name, options.no_host_dns)/s/)/, local_hostname=False)/' /usr/lib/python3.6/site-packages/ipaserver/install/server/replicainstall.py && python3 -m compileall /usr/lib/python3.6/site-packages/ipaserver/install/server/replicainstall.py
-# Workaround https://github.com/freeipa/freeipa-container/issues/187
-COPY certmonger-wait-for-ready.conf /usr/lib/systemd/system/certmonger.service.d/wait-for-ready.conf
+# Workaround https://pagure.io/freeipa/issue/7810
+RUN rm -f /etc/crypto-policies/local.d/nss-p11-kit.config && update-crypto-policies
 
-RUN find /etc/systemd/system/* '!' -name '*.wants' | xargs rm -rvf
-RUN for i in basic.target network.service netconsole.service ; do rm -f /usr/lib/systemd/system/$i && ln -s /dev/null /usr/lib/systemd/system/$i ; done
-RUN rm -fv /usr/lib/systemd/system/sysinit.target.wants/*
-RUN echo 'disable *' > /usr/lib/systemd/system-preset/10-container-disable.preset
+# debug: RUN test $( getent passwd | grep -E "^(dirsrv:x:389|ipaapi:x:289|kdcproxy:x:288|pkiuser:x:17):" | wc -l ) -eq 4
 
-RUN /sbin/ldconfig -X
+# Container image which runs systemd
+# debug: RUN test -f /etc/machine-id && ! test -s /etc/machine-id
+# debug: RUN test -z "$container"
+ENV container oci
+ENTRYPOINT [ "/usr/sbin/init" ]
+STOPSIGNAL RTMIN+3
+# test-addon: VOLUME [ "/var/log/journal" ]
+# test: systemd-container-failed.sh var-lib-nfs-rpc_pipefs.mount
 
-COPY init-data /usr/local/sbin/init
-COPY ipa-server-configure-first systemctl-exit-with-status ipa-volume-upgrade-* /usr/sbin/
-COPY install.sh uninstall.sh /bin/
-RUN mv /bin/hostnamectl /bin/hostnamectl.orig
-RUN mv /usr/bin/domainname /usr/bin/domainname.orig
-ADD hostnamectl-wrapper /bin/hostnamectl
-ADD hostnamectl-wrapper /usr/bin/domainname
-RUN chmod -v +x /usr/local/sbin/init /usr/sbin/ipa-server-configure-first /usr/sbin/systemctl-exit-with-status /usr/sbin/ipa-volume-upgrade-* /bin/install.sh /bin/uninstall.sh /bin/hostnamectl /usr/bin/domainname
-COPY container-ipa.target ipa-server-configure-first.service ipa-server-upgrade.service ipa-server-update-self-ip-address.service /usr/lib/systemd/system/
+# Minimize the systemd setup
+RUN find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.target.wants -type l | xargs rm -v
+COPY patches/minimal-fedora-26.patch /root/
+RUN patch --verbose -p0 --fuzz=0 < /root/minimal-fedora-26.patch
+# debug: RUN ! find /etc/systemd/system /usr/lib/systemd/system/{basic,multi-user,sysinit}.target.wants /etc/tmpfiles.d -type f | grep .
+
+COPY container-ipa.target /usr/lib/systemd/system/
+RUN systemctl set-default container-ipa.target
 RUN rmdir -v /etc/systemd/system/multi-user.target.wants \
 	&& mkdir /etc/systemd/system/container-ipa.target.wants \
 	&& ln -s /etc/systemd/system/container-ipa.target.wants /etc/systemd/system/multi-user.target.wants
-
-RUN systemctl set-default container-ipa.target
-RUN systemctl enable ipa-server-configure-first.service
-
 RUN systemd-tmpfiles --remove --create
+# debug: RUN ! test -f /var/lib/systemd/random-seed
+# test-addon: VOLUME [ "/var/log/journal" ]
+# test: systemd-container-diff.sh list-dependencies-fedora-26.out docker-diff-minimal-fedora-23.exceptions docker-diff-minimal-fedora-23.out
 
+# Prepare for basic ipa-server-install in container
+# Address failing fedora-domainname.service in the ipa-client-install step
+RUN mv /usr/bin/domainname /usr/bin/domainname.orig
+ADD hostnamectl-wrapper /usr/bin/domainname
+
+COPY patches/ipa-fedora-28.patch /root
+RUN set -o pipefail ; patch --verbose -p0 --fuzz=0 < /root/ipa-fedora-28.patch | tee /dev/stderr | sed -n 's/^patching file //;T;/\.py$/p' | xargs python3 -m compileall
+
+# Workaround https://github.com/freeipa/freeipa-container/issues/187
+COPY certmonger-wait-for-ready.conf /usr/lib/systemd/system/certmonger.service.d/wait-for-ready.conf
+# test-addon: VOLUME [ "/var/log/journal" ]
+## # test: systemd-container-ipa-server-install.sh
+
+# Move configuration and data to data volume
+COPY patches/ipa-data-fedora-28.patch /root
+RUN set -o pipefail ; patch --verbose -p0 --fuzz=0 < /root/ipa-data-fedora-28.patch | tee /dev/stderr | sed -n 's/^patching file //;T;/\.py$/p' | xargs python3 -m compileall
+
+RUN mv /usr/sbin/ipa-join /usr/sbin/ipa-join.orig
+COPY ipa-join /usr/sbin/ipa-join
+
+RUN authselect select sssd with-sudo --force && mv /usr/bin/authselect /usr/bin/authselect.orig
+COPY authselect /usr/bin/authselect
+
+COPY utils/prepare-volume-template utils/populate-volume-from-template utils/extract-rpm-upgrade-scriptlets /usr/local/bin/
+COPY volume-data-list volume-tmp-list volume-data-autoupdate /etc/
+RUN /usr/local/bin/prepare-volume-template /etc/volume-data-list /data
+RUN /usr/local/bin/prepare-volume-template /etc/volume-tmp-list /tmp
+RUN /usr/local/bin/extract-rpm-upgrade-scriptlets
+
+RUN echo 2.0 > /etc/volume-version
+VOLUME [ "/tmp", "/run", "/data", "/var/log/journal" ]
+
+COPY init-data-minimal /usr/local/sbin/init
+ENTRYPOINT [ "/usr/local/sbin/init" ]
+# test: systemd-container-ipa-server-install-data.sh docker-diff-minimal-fedora-23.out
+
+# Configure master/replica upon the first invocation
+COPY init-data /usr/local/sbin/init
+COPY ipa-server-configure-first systemctl-exit-with-status ipa-volume-upgrade-* /usr/sbin/
+COPY ipa-server-configure-first.service ipa-server-upgrade.service ipa-server-update-self-ip-address.service /usr/lib/systemd/system/
+RUN ln -sv /usr/lib/systemd/system/ipa-server-configure-first.service /data-template/etc/systemd/system/container-ipa.target.wants/ipa-server-configure-first.service
 COPY exit-status.conf /usr/lib/systemd/system/systemd-poweroff.service.d/
-
-COPY atomic-install-help /usr/share/ipa/
-COPY volume-data-list volume-data-mv-list volume-data-autoupdate /etc/
-RUN set -e ; cd / ; mkdir /data-template ; cat /etc/volume-data-list | while read i ; do echo $i ; if [ -e $i ] ; then tar cf - .$i | ( cd /data-template && tar xf - ) ; else mkdir -p /data-template$( dirname $i ) ; fi ; mkdir -p $( dirname $i ) ; if [ "$i" == /var/log/ ] ; then mv /var/log /var/log-removed ; else rm -rf $i ; fi ; ln -sf /data${i%/} ${i%/} ; done
-RUN rm -rf /var/log-removed
-RUN sed -i 's!^d /var/log.*!L /var/log - - - - /data/var/log!' /usr/lib/tmpfiles.d/var.conf
-# Workaround 1286602
-RUN mv /usr/lib/tmpfiles.d/journal-nocow.conf /usr/lib/tmpfiles.d/journal-nocow.conf.disabled
-RUN rm -f /data-template/var/lib/systemd/random-seed
-RUN echo 1.1 > /etc/volume-version
-
-# debug: RUN test -z "$container"
-ENV container oci
 
 EXPOSE 53/udp 53 80 443 389 636 88 464 88/udp 464/udp 123/udp 7389 9443 9444 9445
 
-VOLUME [ "/tmp", "/run", "/data" ]
-
-STOPSIGNAL RTMIN+3
-ENTRYPOINT [ "/usr/local/sbin/init" ]
 RUN uuidgen > /data-template/build-id
 
 # Invocation:
 # docker run -ti -v /sys/fs/cgroup:/sys/fs/cgroup:ro --tmpfs /run --tmpfs /tmp -v /opt/ipa-data:/data:Z -h ipa.example.test ${NAME} [ options ]
+
+# Atomic specific bits
+COPY install.sh uninstall.sh /bin/
+COPY atomic-install-help /usr/share/ipa/
 
 # For atomic, we run INSTALL --privileged but install.sh will start another unprivileged container.
 # We do it this way to be able to set hostname for the unprivileged container.
