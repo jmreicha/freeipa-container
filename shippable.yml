@@ -15,9 +15,9 @@
 #  ci:
 #    - arch: $(lscpu | grep Arch | awk '{ print $2 }')
 #    - echo $arch
-#    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
-#    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
-#    - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
+#    - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-29
+#    - sed -i 's/^# debug:\s*//' Dockerfile.fedora-29
+#    - docker build -t local/freeipa-server -f Dockerfile.fedora-29 .
 #    - tests/run-master-and-replica.sh local/freeipa-server
 #
 #  post_ci:
@@ -34,9 +34,9 @@ templates: &build-test-push
   - export HUB_PASSWORD=$(shipctl get_integration_field "dockerhub" "password")
   - docker login --username $HUB_USERNAME --password $HUB_PASSWORD
   - cd $(shipctl get_resource_state "freeipa-container-gitRepo")
-  - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-27
-  - sed -i 's/^# debug:\s*//' Dockerfile.fedora-27
-  - docker build -t local/freeipa-server -f Dockerfile.fedora-27 .
+  - sed -i 's|registry.fedoraproject.org/||' Dockerfile.fedora-29
+  - sed -i 's/^# debug:\s*//' Dockerfile.fedora-29
+  - docker build -t local/freeipa-server -f Dockerfile.fedora-29 .
   - tests/run-master-and-replica.sh local/freeipa-server
   - docker tag local/freeipa-server jmreicha/freeipa-server:$arch
   - docker push jmreicha/freeipa-server:$arch
