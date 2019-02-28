@@ -1,0 +1,2 @@
+# Workaround 1611623
+^C /var/log/[bw]tmp$
